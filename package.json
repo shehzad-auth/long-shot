@@ -1,0 +1,20 @@
+{
+  "name": "asdf-01",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "ccxt": "^4.4.73",
+    "express": "^5.1.0",
+    "ml-logistic-regression": "^2.0.0",
+    "ml-matrix": "^6.12.1",
+    "ws": "^8.18.1"
+  }
+}
