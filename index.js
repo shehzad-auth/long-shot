@@ -37,6 +37,9 @@ app.listen(port, () => {
     runBot(); // Start your bot after server is up
 });
 
+console.log("hey...")
+
+
 // Centralized Configuration (Adjustable via UI)
 const config = {
     exchange: {
@@ -1402,7 +1405,4 @@ async function startPairMonitoring(pair) {
 
     setupHandlers();
 }
-
-// Start Bot
-runBot();
 // end v7
