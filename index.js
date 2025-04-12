@@ -18,7 +18,7 @@ console.log = function (...args) {
     timestamp: new Date().toISOString(),
     message: logMessage
   });
-  originalConsoleLog.apply(console, args); // Still print to terminal
+//   originalConsoleLog.apply(console, args); // Still print to terminal
 };
 
 // API endpoint to get logs
@@ -50,7 +50,7 @@ const config = {
     trading: {
         initialCash: 300,
         topPairs: 3,  // Focus on top 3 performing pairs
-        pairLimit: 10,
+        pairLimit: 120,
         minCashForTrade: 10,  // Increased to avoid dust trades
         reassessInterval: 4 * 60 * 60 * 1000  // Every 4 hours
     },
