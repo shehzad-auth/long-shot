@@ -50,7 +50,7 @@ const config = {
     trading: {
         initialCash: 300,
         topPairs: 3,  // Focus on top 3 performing pairs
-        pairLimit: 50,
+        pairLimit: 10,
         minCashForTrade: 10,  // Increased to avoid dust trades
         reassessInterval: 4 * 60 * 60 * 1000  // Every 4 hours
     },
@@ -1257,8 +1257,8 @@ async function runBot() {
 async function reassessPairsPerformance() {
     console.log("🔄 Reassessing pairs... 👀");
     const newBestPairs = await findBestPairs();
-    const pairsToRemove = tradingPairs.filter(p => !newBestPairs.some(np => np.pair === p));
-    const pairsToAdd = newBestPairs.filter(np => !tradingPairs.includes(np.pair)).map(np => np.pair);
+    const pairsToRemove = tradingPairs.filter(p => !newBestPairs.some(np => np === p));
+    const pairsToAdd = newBestPairs.filter(np => !tradingPairs.includes(np));
 
     if (pairsToRemove.length === 0 && pairsToAdd.length === 0) return;
 
@@ -1276,7 +1276,7 @@ async function reassessPairsPerformance() {
         delete portfolio[pair];
     }
 
-    const retainedPairs = tradingPairs.filter(p => newBestPairs.some(np => np.pair === p));
+    const retainedPairs = tradingPairs.filter(p => newBestPairs.some(np => np === p));
     for (const pair of retainedPairs) {
         const redistributionAmount = portfolio[pair].cash * 0.3;
         portfolio[pair].cash -= redistributionAmount;
@@ -1284,7 +1284,7 @@ async function reassessPairsPerformance() {
     }
 
     const capitalPerPair = totalAvailableCapital / newBestPairs.length;
-    for (const pair of newBestPairs.map(p => p.pair)) {
+    for (const pair of newBestPairs) {
         if (retainedPairs.includes(pair)) {
             portfolio[pair].cash += capitalPerPair - (portfolio[pair].cash * 0.7);
         } else {
@@ -1293,7 +1293,7 @@ async function reassessPairsPerformance() {
         }
     }
 
-    tradingPairs = newBestPairs.map(p => p.pair);
+    tradingPairs = newBestPairs;
 }
 
 async function startPairMonitoring(pair) {

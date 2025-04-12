@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/countup.js@2.0.8/dist/countUp.min.js"></script> -->
+</head>
+<body>
+    <div class="dashboard">
+        <header class="header">
+            <div class="header-left">
+                <h1>Trading Bot Dashboard</h1>
+                <p>Monitor your trading bot's performance in real-time</p>
+            </div>
+            <div class="header-right">
+                <button id="refreshButton" class="btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                    Refresh
+                </button>
+                <div class="theme-toggle">
+                    <input type="checkbox" id="theme-toggle" class="theme-toggle-input">
+                    <label for="theme-toggle" class="theme-toggle-label"></label>
+                </div>
+            </div>
+        </header>
+
+        <div class="metrics-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Total Profit</h3>
+                    <div class="card-icon profit-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="metric-value">$<span id="totalProfit">0.00</span></div>
+                    <div class="metric-change" id="profitChange">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                        <span>0.00%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Total Trades</h3>
+                    <div class="card-icon trades-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5-5-4 4-3-3"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="metric-value"><span id="totalTrades">0</span></div>
+                    <div class="metric-label">All time trades</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Win Rate</h3>
+                    <div class="card-icon winrate-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 10-6.5 6.5-3.5-3.5-5.5 5.5-3-3L10 9l4 4 8-8"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="metric-value"><span id="winRate">0</span>%</div>
+                    <div class="metric-label">Success rate</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Active Pairs</h3>
+                    <div class="card-icon pairs-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="16" cy="16" r="6"/></svg>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="metric-value"><span id="activePairs">0</span></div>
+                    <div class="metric-label">Currently trading</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h3>Profit History</h3>
+                    <div class="period-selector">
+                        <button class="period-btn active" data-period="24h">24h</button>
+                        <button class="period-btn" data-period="7d">7d</button>
+                        <button class="period-btn" data-period="30d">30d</button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Portfolio Allocation</h3>
+                </div>
+                <div class="card-content">
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="tables-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Active Trading Pairs</h3>
+                </div>
+                <div class="card-content">
+                    <table class="data-table" id="tradingPairsTable">
+                        <thead>
+                            <tr>
+                                <th>Pair</th>
+                                <th>Position</th>
+                                <th>Entry Price</th>
+                                <th>Current Price</th>
+                                <th>Profit/Loss</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="empty-state">
+                                <td colspan="5">
+                                    <div class="empty-message">
+                                        <p>No active trading pairs</p>
+                                        <p class="empty-submessage">Waiting for signals...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Recent Trades</h3>
+                </div>
+                <div class="card-content">
+                    <table class="data-table" id="recentTradesTable">
+                        <thead>
+                            <tr>
+                                <th>Pair</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Profit/Loss</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="empty-state">
+                                <td colspan="5">
+                                    <div class="empty-message">
+                                        <p>No recent trades</p>
+                                        <p class="empty-submessage">Trades will appear here</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Indicator Performance</h3>
+            </div>
+            <div class="card-content">
+                <div class="indicators-grid" id="indicatorsGrid">
+                    <!-- Indicators will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
