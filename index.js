@@ -1120,6 +1120,10 @@ async function startRealTimeMonitoring() {
                     const signal = signals[signals.length - 1];
                     const price = newCandle.close;
                     const volatility = calculateATR(data.map(d => d.high), data.map(d => d.low), data.map(d => d.close))[data.length - 1];
+                    
+                    if (!portfolio[pair]) {
+                        portfolio[pair] = { initialCash: 0, cash: 0, position: 0, entryPrice: 0, highestPrice: 0, lowestPrice: Infinity, trades: [], takeProfitLevels: null, trend: null, atr: null, params: null, timeframe: null, tradeLog: [] };
+                    }
                     portfolio[pair].atr = calculateATR(data.map(d => d.high), data.map(d => d.low), data.map(d => d.close));
 
                     if (position !== 0) {
