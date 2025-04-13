@@ -37,8 +37,6 @@ app.listen(port, () => {
     runBot(); // Start your bot after server is up
 });
 
-console.log("hey...")
-
 
 // Centralized Configuration (Adjustable via UI)
 const config = {
@@ -50,9 +48,9 @@ const config = {
     trading: {
         initialCash: 300,
         topPairs: 3,  // Focus on top 3 performing pairs
-        pairLimit: 120,
+        pairLimit: 5,
         minCashForTrade: 10,  // Increased to avoid dust trades
-        reassessInterval: 4 * 60 * 60 * 1000  // Every 4 hours
+        reassessInterval: 5 * 60 * 1000 //4 * 60 * 60 * 1000  // Every 4 hours
     },
     indicators: {
         shortMAPeriod: 5,
@@ -1302,17 +1300,44 @@ async function reassessPairsPerformance() {
 
 async function startPairMonitoring(pair) {
     const wsSymbol = pair.replace('/', '').toLowerCase();
-    const ohlcv = await exchange.fetchOHLCV(pair, config.backtest.timeframe, undefined, config.websocket.maxDataLength);
-    const data = ohlcv.map(candle => ({
-        timestamp: new Date(candle[0]),
-        open: parseFloat(candle[1]),
-        high: parseFloat(candle[2]),
-        low: parseFloat(candle[3]),
-        close: parseFloat(candle[4]),
-        volume: parseFloat(candle[5]),
-    }));
+    const timeframe = await timeframeSelector(pair);
+    let data = [];
+    try {
+        const ohlcv = await exchange.fetchOHLCV(pair, timeframe, undefined, config.websocket.maxDataLength);
+        data = ohlcv.map(candle => ({
+            timestamp: new Date(candle[0]),
+            open: parseFloat(candle[1]),
+            high: parseFloat(candle[2]),
+            low: parseFloat(candle[3]),
+            close: parseFloat(candle[4]),
+            volume: parseFloat(candle[5]),
+        }));
+    } catch (error) {
+        console.error(`[${pair}] Failed to fetch initial OHLCV: ${error.message}`);
+        return;
+    }
 
-    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${config.backtest.timeframe}`);
+    // Initialize portfolio entry if it doesn't exist
+    if (!portfolio[pair]) {
+        const cashPerPair = config.trading.initialCash / tradingPairs.length;
+        portfolio[pair] = {
+            initialCash: cashPerPair,
+            cash: cashPerPair,
+            position: 0,
+            entryPrice: 0,
+            highestPrice: 0,
+            lowestPrice: Infinity,
+            trades: [],
+            takeProfitLevels: null,
+            atr: calculateATR(data.map(d => d.high), data.map(d => d.low), data.map(d => d.close)),
+            trend: (await analyzeMultipleTimeframes(pair)).primaryTrend,
+            params: null,
+            timeframe: timeframe,
+            tradeLog: []
+        };
+    }
+
+    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${timeframe}`);
     wsConnections[pair] = ws;
 
     let reconnectAttempts = 0;
@@ -1347,59 +1372,87 @@ async function startPairMonitoring(pair) {
                 const price = newCandle.close;
                 const volatility = calculateATR(data.map(d => d.high), data.map(d => d.low), data.map(d => d.close))[data.length - 1];
 
-                let { cash, position, entryPrice, highestPrice, trades, takeProfitLevels } = portfolio[pair];
+                // Safety check for portfolio[pair]
+                if (!portfolio[pair]) {
+                    console.error(`[${pair}] Error: Portfolio entry undefined, skipping trade logic`);
+                    return;
+                }
 
-                if (position > 0) {
+                let { cash, position, entryPrice, highestPrice, lowestPrice, trades, takeProfitLevels } = portfolio[pair];
+
+                if (position !== 0) {
                     highestPrice = Math.max(highestPrice, price);
-                    const stopLossPrice = calculateStopLoss(entryPrice, volatility, portfolio[pair].trend);
-                    const trailingStopPrice = highestPrice - volatility * config.risk.trailingStopMultiplier;
+                    lowestPrice = Math.min(lowestPrice, price);
+                    const isShort = position < 0;
+                    const stopLossPrice = calculateStopLoss(entryPrice, volatility, portfolio[pair].trend, isShort);
+                    const trailingStopPrice = isShort ? lowestPrice + volatility * config.risk.trailingStopMultiplier : highestPrice - volatility * config.risk.trailingStopMultiplier;
 
                     if (takeProfitLevels?.length > 0) {
                         const nextTP = takeProfitLevels[0];
-                        if (price >= nextTP.price) {
-                            const sellAmount = position * nextTP.portion;
-                            const profit = sellAmount * (price - entryPrice);
-                            cash += sellAmount * price;
-                            position -= sellAmount;
+                        const tpHit = isShort ? price <= nextTP.price : price >= nextTP.price;
+                        if (tpHit) {
+                            const sellAmount = Math.abs(position) * nextTP.portion;
+                            const profit = isShort ? sellAmount * (entryPrice - price) : sellAmount * (price - entryPrice);
+                            cash += sellAmount * price * (isShort ? -1 : 1);
+                            position -= sellAmount * (isShort ? -1 : 1);
                             trades.push({ price, profit });
+                            logTrade(pair, isShort ? 'close_short' : 'take_profit', price, sellAmount, profit);
                             takeProfitLevels.shift();
                             if (takeProfitLevels.length === 0) takeProfitLevels = null;
                             console.log(`[${pair}] 🎯 Take Profit: Sold ${sellAmount.toFixed(6)} 📤 at $${price} 💵`);
                         }
                     }
 
-                    if (signal.action === -1 || price <= stopLossPrice || price <= trailingStopPrice) {
-                        const profit = position * (price - entryPrice);
-                        cash += position * price;
+                    const exitCondition = (isShort && (signal.action === 1 || price >= stopLossPrice || price >= trailingStopPrice)) ||
+                                          (!isShort && (signal.action === -1 || price <= stopLossPrice || price <= trailingStopPrice));
+                    if (exitCondition) {
+                        const profit = isShort ? Math.abs(position) * (entryPrice - price) : position * (price - entryPrice);
+                        cash += Math.abs(position) * price * (isShort ? -1 : 1);
                         trades.push({ price, profit });
+                        logTrade(pair, isShort ? 'close_short' : 'sell', price, Math.abs(position), profit);
                         position = 0;
                         highestPrice = 0;
+                        lowestPrice = Infinity;
                         takeProfitLevels = null;
-                        console.log(`[${pair}] 📉 Sell: ${position.toFixed(6)} 📤 at $${price} 💵`);
+                        console.log(`[${pair}] 📉 Sell: ${Math.abs(position).toFixed(6)} 📤 at $${price} 💵`);
                     }
                 }
 
-                if (signal.action === 1 && cash >= config.trading.minCashForTrade) {
+                if (signal.action === 1 && cash >= config.trading.minCashForTrade && position === 0) {
                     const quantity = calculatePositionSize(pair, signal.strength, { ...portfolio[pair], cash, trades });
                     position += quantity;
                     entryPrice = price;
                     highestPrice = price;
+                    lowestPrice = price;
                     cash -= quantity * price;
                     takeProfitLevels = setupTakeProfitLevels(entryPrice, volatility);
-                    console.log(`📈 [${pair}] Buy: ${quantity.toFixed(6)} at 💲${price}`);
+                    trades.push({ price, profit: 0 });
+                    logTrade(pair, 'buy', price, quantity, 0);
+                    console.log(`[${pair}] 📈 Buy: ${quantity.toFixed(6)} at $${price}`);
+                } else if (signal.action === -1 && cash >= config.trading.minCashForTrade && position === 0) {
+                    const quantity = calculatePositionSize(pair, signal.strength, { ...portfolio[pair], cash, trades });
+                    position -= quantity;
+                    entryPrice = price;
+                    highestPrice = price;
+                    lowestPrice = price;
+                    cash += quantity * price;
+                    takeProfitLevels = setupTakeProfitLevels(entryPrice, volatility).map(tp => ({ price: entryPrice - (tp.price - entryPrice), portion: tp.portion }));
+                    trades.push({ price, profit: 0 });
+                    logTrade(pair, 'short', price, quantity, 0);
+                    console.log(`[${pair}] 📉 Short: ${quantity.toFixed(6)} at $${price}`);
                 }
 
-                portfolio[pair] = { ...portfolio[pair], cash, position, entryPrice, highestPrice, trades, takeProfitLevels };
+                portfolio[pair] = { ...portfolio[pair], cash, position, entryPrice, highestPrice, lowestPrice, trades, takeProfitLevels };
             }
         });
 
         ws.on('error', (error) => console.error(`[${pair}] WebSocket error: ${error.message}`));
         ws.on('close', () => {
-            console.log(`🔌 [${pair}] WebSocket closed, 🔁 reconnecting...`);
+            console.log(`[${pair}] 🔌 WebSocket closed, 🔁 reconnecting...`);
             clearInterval(heartbeatInterval);
             if (reconnectAttempts < config.websocket.maxReconnectAttempts) {
                 setTimeout(() => {
-                    wsConnections[pair] = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${config.backtest.timeframe}`);
+                    wsConnections[pair] = new WebSocket(`wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${timeframe}`);
                     setupHandlers();
                     reconnectAttempts++;
                 }, Math.min(1000 * Math.pow(2, reconnectAttempts), 60000));
