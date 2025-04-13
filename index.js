@@ -48,9 +48,9 @@ const config = {
     trading: {
         initialCash: 300,
         topPairs: 3,  // Focus on top 3 performing pairs
-        pairLimit: 5,
+        pairLimit: 120,
         minCashForTrade: 10,  // Increased to avoid dust trades
-        reassessInterval: 5 * 60 * 1000 //4 * 60 * 60 * 1000  // Every 4 hours
+        reassessInterval: 4 * 60 * 60 * 1000  // Every 4 hours
     },
     indicators: {
         shortMAPeriod: 5,
