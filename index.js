@@ -239,7 +239,7 @@ function calculateKellyCriterion(trades) {
 // --- Utility Functions ---
 async function selectTimeframe(pair) {
   if (!pair?.includes('/USDT')) {
-    console.error(`⛔ Invalid pair: ${pair}`);
+    console.log(`⛔ Invalid pair: ${pair}`);
     return config.dynamicTimeframe.defaultTimeframe;
   }
   try {
@@ -254,7 +254,7 @@ async function selectTimeframe(pair) {
     if (adx1h > config.dynamicTimeframe.adxTrendThreshold) return '1h';
     return config.dynamicTimeframe.defaultTimeframe;
   } catch (error) {
-    console.error(`[${pair}] ⛔ Timeframe selection error: ${error.message}`);
+    console.log(`[${pair}] ⛔ Timeframe selection error: ${error.message}`);
     return config.dynamicTimeframe.defaultTimeframe;
   }
 }
@@ -276,7 +276,7 @@ async function fetchOHLCVWithRetry(pair, timeframe, limit, retries = 3, delayMs 
 // --- Signal and Model Training ---
 function trainSignalModel(pair, trades, candleData) {
   if (!trades?.length || !candleData?.length) {
-    console.error(`[${pair}] ⛔ Invalid data for model training`);
+    console.log(`[${pair}] ⛔ Invalid data for model training`);
     return null;
   }
   const closes = candleData.map((c) => c.close);
@@ -302,7 +302,7 @@ function trainSignalModel(pair, trades, candleData) {
     .filter(Boolean);
 
   if (!trainingData.length) {
-    console.error(`[${pair}] ⛔ No valid training data`);
+    console.log(`[${pair}] ⛔ No valid training data`);
     return null;
   }
 
@@ -502,7 +502,7 @@ function executeTradeLogic(pair, candleData, signal, price, volatility, pairPort
   pairPortfolio.takeProfitLevels = takeProfitLevels;
 
   if (pairPortfolio.cash < 0) {
-    console.error(`[${pair}] ⚠️ Negative cash detected: ${pairPortfolio.cash.toFixed(2)}. Resetting to 0.`);
+    console.log(`[${pair}] ⚠️ Negative cash detected: ${pairPortfolio.cash.toFixed(2)}. Resetting to 0.`);
     pairPortfolio.cash = 0;
   }
 
@@ -593,7 +593,7 @@ async function analyzeMultipleTimeframes(pair) {
         maTrendStrength: Math.abs(closes[closes.length - 1] - longMA[longMA.length - 1]) / closes[closes.length - 1],
       };
     } catch (error) {
-      console.error(`[${pair}] ⛔ Error analyzing ${tf}: ${error.message}`);
+      console.log(`[${pair}] ⛔ Error analyzing ${tf}: ${error.message}`);
       analysis[tf] = { error: true };
     }
   }
@@ -685,7 +685,7 @@ async function analyzeMarketCorrelations(pairs) {
       const closes = ohlcv.map((c) => c[4]);
       pairData[pair] = closes.map((v, i) => (i === 0 ? 0 : (v - closes[i - 1]) / closes[i - 1]));
     } catch (error) {
-      console.error(`[${pair}] ⛔ Error fetching correlation data: ${error.message}`);
+      console.log(`[${pair}] ⛔ Error fetching correlation data: ${error.message}`);
       pairData[pair] = [];
     }
   }
@@ -802,7 +802,7 @@ async function optimizeIndicatorParameters(pair) {
     }
     return bestParams;
   } catch (error) {
-    console.error(`[${pair}] ⛔ Optimization error: ${error.message}`);
+    console.log(`[${pair}] ⛔ Optimization error: ${error.message}`);
     return null;
   }
 }
@@ -861,7 +861,7 @@ function backtestPair(pair, candleData, signals, pairPortfolio) {
 async function analyzePairPerformance(pair, analysisResult) {
   const { candleData } = analysisResult;
   if (!candleData?.length) {
-    console.error(`[${pair}] ⛔ Invalid analysis data`);
+    console.log(`[${pair}] ⛔ Invalid analysis data`);
     return false;
   }
 
@@ -880,7 +880,7 @@ async function analyzePairPerformance(pair, analysisResult) {
   }
 
   if (!performance.length) {
-    console.error(`[${pair}] ⛔ No performance data`);
+    console.log(`[${pair}] ⛔ No performance data`);
     return false;
   }
 
@@ -928,7 +928,7 @@ async function findBestPairs() {
         results.push({ pair, profit: backtestResult.profit, winRate: backtestResult.winRate, trades: backtestResult.trades.length, candleData, alignmentScore: multiTf.alignmentScore });
       }
     } catch (error) {
-      console.error(`[${pair}] ⛔ Error: ${error.message}`);
+      console.log(`[${pair}] ⛔ Error: ${error.message}`);
     }
   }
 
@@ -986,7 +986,7 @@ async function monitorPair(pair) {
       volume: parseFloat(c[5]),
     }));
   } catch (error) {
-    console.error(`[${pair}] ⛔ Error fetching initial data: ${error.message}`);
+    console.log(`[${pair}] ⛔ Error fetching initial data: ${error.message}`);
     return;
   }
 
@@ -1033,7 +1033,7 @@ async function monitorPair(pair) {
       executeTradeLogic(pair, candleData, signal, price, volatility, portfolio[pair]);
     });
 
-    ws.on('error', (error) => console.error(`[${pair}] ⛔ WebSocket error: ${error.message}`));
+    ws.on('error', (error) => console.log(`[${pair}] ⛔ WebSocket error: ${error.message}`));
     ws.on('close', () => {
       console.log(`[${pair}] 🔌 WebSocket closed, reconnecting...`);
       clearInterval(heartbeatInterval);
@@ -1093,7 +1093,7 @@ async function reassessPairsPerformance() {
       const profit = isShort ? quantity * (portfolio[pair].entryPrice - price) : quantity * (price - portfolio[pair].entryPrice);
       portfolio[pair].cash = Number((parseFloat(portfolio[pair].cash) + parseFloat((isShort ? 1 : -1) * quantity * price)).toFixed(8));
       if (portfolio[pair].cash < 0) {
-        console.error(`[${pair}] ⚠️ Negative cash after closing: ${portfolio[pair].cash}. Resetting to 0.`);
+        console.log(`[${pair}] ⚠️ Negative cash after closing: ${portfolio[pair].cash}. Resetting to 0.`);
         portfolio[pair].cash = 0;
       }
       portfolio[pair].trades.push({ price, profit });
