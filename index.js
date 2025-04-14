@@ -501,7 +501,7 @@ function executeTradeLogic(pair, candleData, signal, price, volatility, pairPort
   pairPortfolio.trades = trades;
   pairPortfolio.takeProfitLevels = takeProfitLevels;
 
-  if (pairPortfolio.cash < 0) {
+  if (pairPortfolio.cash < 0 && !isBacktest) {
     console.log(`[${pair}] ⚠️ Negative cash detected: ${pairPortfolio.cash.toFixed(2)}. Resetting to 0.`);
     pairPortfolio.cash = 0;
   }
