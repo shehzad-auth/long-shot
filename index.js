@@ -252,7 +252,7 @@ async function startMonitoring(pairs, isInitial = false) {
  * Process new candle data and execute trades
  */
 async function processNewCandle(pair, candle, historicalData) {
-  console.log(`🕯️ [${pair}] New candle: ${new Date(candle.timestamp).toISOString()} | O:${candle.open} H:${candle.high} L:${candle.low} C:${candle.close} V:${candle.volume}`);
+  // console.log(`🕯️ [${pair}] New candle: ${new Date(candle.timestamp).toISOString()} | O:${candle.open} H:${candle.high} L:${candle.low} C:${candle.close} V:${candle.volume}`);
 
   const signals = generateSignals(historicalData, pair);
   const signal = signals[signals.length - 1];
@@ -378,10 +378,7 @@ async function processNewCandle(pair, candle, historicalData) {
     portfolio[pair].cash = 0;
   }
 
-  console.log(`💰 [${pair}] Portfolio: Cash=$${cash.toFixed(2)} | Position=${position.toFixed(6)} | Value=$${(cash + position * price).toFixed(2)}`);
-  if (position !== 0) {
-    console.log(`📊 [${pair}] Current position: ${position.toFixed(6)} | Entry: $${entryPrice} | Current: $${price} | PnL: $${(position * (price - entryPrice)).toFixed(2)}`);
-  }
+  console.log(`💰 [${pair}] Portfolio: Cash=$${cash.toFixed(2)} | Position=${position.toFixed(6)} | Value=$${(cash + position * price).toFixed(2)} | Entry: $${entryPrice || 0} | Current: $${price}`);
 }
 
 // ===================
@@ -841,11 +838,11 @@ async function analyzePairPerformance(pair, fullResult) {
                       sharpe >= config.pairCriteria.minSharpeRatio &&
                       drawdown <= config.pairCriteria.maxDrawdown;
 
-  console.log(`📊 [${pair}] ${isAcceptable ? '✅' : '❌'} ` +
-    `Profit: $${profit.toFixed(2)} | ` +
-    `Win Rate: ${(winRate * 100).toFixed(2)}% | ` +
-    `Trades: ${tradeCount} | ` +
-    `Score: ${indicatorScore.score.toFixed(2)}`);
+  // console.log(`📊 [${pair}] ${isAcceptable ? '✅' : '❌'} ` +
+  //   `Profit: $${profit.toFixed(2)} | ` +
+  //   `Win Rate: ${(winRate * 100).toFixed(2)}% | ` +
+  //   `Trades: ${tradeCount} | ` +
+  //   `Score: ${indicatorScore.score.toFixed(2)}`);
 
   return isAcceptable;
 }
@@ -907,7 +904,7 @@ async function findBestPairs() {
             timeframe
           });
 
-          console.log(`[${pair}] | 💰 Profit: ${backtestResult.profit} | 📈 Win Rate: ${backtestResult.winRate}% | 🔄 Trades: ${backtestResult.tradeCount} | ⏱ Timeframe: ${timeframe} | 🧠 Alignment Score: ${multiTf.alignmentScore}`);
+          // console.log(`[${pair}] | 💰 Profit: ${backtestResult.profit} | 📈 Win Rate: ${backtestResult.winRate}% | 🔄 Trades: ${backtestResult.tradeCount} | ⏱ Timeframe: ${timeframe} | 🧠 Alignment Score: ${multiTf.alignmentScore}`);
         }
       } catch (error) {
         console.log(`⛔ [${pair}] Error: ${error.message}`);
@@ -935,7 +932,7 @@ async function findBestPairs() {
     const pairScores = Object.fromEntries(validPairs.map(r => [r.pair, r.profit]));
     const finalPairs = selectDiversePairs(groups, pairScores).filter(p => p && typeof p === 'string');
 
-    console.log(`🏆 Final Pairs: ${finalPairs.join(', ') || 'None'}`);
+    // console.log(`🏆 Final Pairs: ${finalPairs.join(', ') || 'None'}`);
     return finalPairs;
   } catch (error) {
     console.log(`⛔ Error in findBestPairs: ${error.message}`);
@@ -995,7 +992,7 @@ async function runBot() {
       };
 
       const backtestResult = backtest(data, signals, pair, tempPortfolio);
-      portfolio[pair] = { ...tempPortfolio, params: portfolio[pair]?.params, trend: tempPortfolio.trend, timeframe };
+      portfolio[pair] = { ...tempPortfolio, cash: cashPerPair, params: portfolio[pair]?.params, trend: tempPortfolio.trend, timeframe };
       
       console.log(`📊 [${pair}] Pre-Monitoring Backtest: Profit=$${backtestResult.profit.toFixed(2)}`);
     }
