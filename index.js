@@ -494,7 +494,6 @@ function calculateKellyCriterion(trades) {
 // ======================
 
 function generateSignals(data, pair, customParams = null) {
-  console.log(`🔍 [${pair}] Generating signals with ${data.length} data points`);
   const closes = data.map(d => d.close);
   const highs = data.map(d => d.high);
   const lows = data.map(d => d.low);
