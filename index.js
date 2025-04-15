@@ -1141,10 +1141,15 @@ async function reassessPairsPerformance() {
 
 // --- Main Logic ---
 async function runBot() {
-  const bestPairs = await findBestPairs();
-  if (!bestPairs.length) {
-    console.log('🚫 No suitable pairs found.');
-    return;
+  let bestPairs = [];
+
+  while (!bestPairs.length) {
+    bestPairs = await findBestPairs();
+
+    if (!bestPairs.length) {
+      console.log('🔁 No suitable pairs found. Retrying...');
+      await new Promise(res => setTimeout(res, 3000)); // optional delay before retry
+    }
   }
 
   tradingPairs = bestPairs;
