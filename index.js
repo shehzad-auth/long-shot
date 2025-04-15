@@ -906,6 +906,8 @@ async function findBestPairs() {
             backtestResult,
             timeframe
           });
+
+          console.log(`[${pair}] | 💰 Profit: ${backtestResult.profit} | 📈 Win Rate: ${backtestResult.winRate}% | 🔄 Trades: ${backtestResult.tradeCount} | ⏱ Timeframe: ${timeframe} | 🧠 Alignment Score: ${multiTf.alignmentScore}`);
         }
       } catch (error) {
         console.log(`⛔ [${pair}] Error: ${error.message}`);
