@@ -992,7 +992,7 @@ async function runBot() {
       };
 
       const backtestResult = backtest(data, signals, pair, tempPortfolio);
-      portfolio[pair] = { ...tempPortfolio, cash: cashPerPair, params: portfolio[pair]?.params, trend: tempPortfolio.trend, timeframe };
+      portfolio[pair] = { ...tempPortfolio, cash: cashPerPair, entryPrice: 0, position: 0, params: portfolio[pair]?.params, trend: tempPortfolio.trend, timeframe };
       
       console.log(`📊 [${pair}] Pre-Monitoring Backtest: Profit=$${backtestResult.profit.toFixed(2)}`);
     }
