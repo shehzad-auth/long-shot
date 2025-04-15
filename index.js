@@ -9,14 +9,14 @@ const port = process.env.PORT || 3000;
 const logs = [];
 
 // Override console.log to capture logs
-const originalConsoleLog = console.log;
+// const originalConsoleLog = console.log;
 console.log = function (...args) {
   const logMessage = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
   logs.push({
     timestamp: new Date().toISOString(),
     message: logMessage
   });
-  originalConsoleLog.apply(console, args);
+  // originalConsoleLog.apply(console, args);
 };
 
 // API endpoints
