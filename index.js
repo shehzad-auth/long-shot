@@ -523,10 +523,7 @@ function generateSignals(data, pair, customParams = null) {
   const mlModel = portfolio[pair]?.mlModel;
 
   return closes.map((_, i) => {
-    if (i < config.indicators.macdSlow - 1) {
-      console.log(`⏳ [${pair}] Skipping signal generation for index ${i} - insufficient data`);
-      return { action: 0, strength: 0 };
-    }
+    if (i < config.indicators.macdSlow - 1) { return { action: 0, strength: 0 }; }
 
     // Buy signals
     const maCross = indicators.shortMA[i] > indicators.longMA[i] && indicators.shortMA[i - 1] <= indicators.longMA[i - 1];
@@ -567,12 +564,6 @@ function generateSignals(data, pair, customParams = null) {
     }
 
     // Determine final signal
-    if (buyStrength >= config.signals.buyThreshold) {
-      console.log(`📈 [${pair}] Strong BUY signal at index ${i}: Strength=${(buyStrength / 4.3).toFixed(2)}`);
-    } else if (sellStrength >= config.signals.sellThreshold) {
-      console.log(`📉 [${pair}] Strong SELL signal at index ${i}: Strength=${(sellStrength / 3.8).toFixed(2)}`);
-    }
-
     if (buyStrength >= config.signals.buyThreshold) return { action: 1, strength: buyStrength / 4.3 };
     if (sellStrength >= config.signals.sellThreshold) return { action: -1, strength: sellStrength / 3.8 };
     return { action: 0, strength: 0 };
